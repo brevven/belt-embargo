@@ -1,0 +1,17 @@
+{
+    "name": "belt-embargo",
+    "version": "0.0.2",
+    "factorio_version": "1.1",
+    "title": "Belt Embargo",
+    "author": "Brevven",
+    "contact": "",
+    "homepage": "",
+    "dependencies": [
+      "base >= 1.1.0",
+      "(?) space-exploration",
+      "(?) Krastorio2",
+      "(?) bz-dsr-bridge"
+    ],
+    "description": "Removes belts from the game. Adjusts recipes to compensate.\n\nSupports vanilla and modded belts."
+}
+
