@@ -3,14 +3,20 @@ local futil = require("util")
 
 butil = {}
 butil.techs = {}
-butil.belts = {}
+butil.belt_entities = {}
+butil.belt_items = {}
 
-function butil.remove(name, t) 
+function butil.remove_entity(name, t) 
   local name = name
   log("Found belt entity to remove: ".. name)
-  butil.belts[name] = t
+  butil.belt_entities[name] = t
 end
 
+function butil.remove_item(name)
+  local name = name
+  log("Found belt item to remove: ".. name)
+  butil.belt_items[name] = true
+end
 
 
 function butil.remove_belt_prereqs(tech)
@@ -69,8 +75,8 @@ function butil.replace_belts(ingredients)
   local found = {}
   for i, ingredient in pairs(ingredients) do
     if ingredient then
-      if butil.belts[ingredient.name] then table.insert(found, {ingredient.name, ingredient.amount}) end
-      if butil.belts[ingredient[1]] then table.insert(found, {ingredient[1], ingredient[2]}) end
+      if butil.belt_items[ingredient.name] then table.insert(found, {ingredient.name, ingredient.amount}) end
+      if butil.belt_items[ingredient[1]] then table.insert(found, {ingredient[1], ingredient[2]}) end
     end
   end
   for j, foundi in pairs(found) do
@@ -134,13 +140,13 @@ function get_replacement_ingredients(ingredient_name)
     end
     -- log(serpent.dump(ingredients))
     for i, ingredient in pairs(ingredients) do
-      if butil.belts[ingredient[1]] then
+      if butil.belt_items[ingredient[1]] then
         -- log(ingredient[1])
         local more = get_replacement_ingredients(ingredient[1])
         for j, new_ingredient in pairs(more) do
           table.insert(replacements, new_ingredient)
         end
-      elseif butil.belts[ingredient.name] then
+      elseif butil.belt_items[ingredient.name] then
         -- log(ingredient.name)
         local more = get_replacement_ingredients(ingredient.name)
         for j, new_ingredient in pairs(more) do

@@ -10,6 +10,7 @@
       "base >= 1.1.0",
       "(?) space-exploration",
       "(?) Krastorio2",
+      "(?) IndustrialRevolution",
       "(?) modmashsplinterlogistics",
       "(?) bz-dsr-bridge"
     ],
