@@ -1,10 +1,7 @@
 ---------------------------------------------------------------------------------------------------
-Version: 0.0.2
-Date: 2022-01-10
+Version: 0.1.0
+Date: 2022-01-18
   Features:
-    - Removes all belts by looking up entities
----------------------------------------------------------------------------------------------------
-Version: 0.0.1
-Date: 2022-01-10
-  Features:
-    - Removes belts - alpha version
+    - Removes belts, undergrounds, splitters, loaders from the game
+    - Setting to remove loaders (default on)
+    - Setting to remove related technologies (default on)

@@ -152,58 +152,60 @@ end
 
 -- set up technologies to consider for removal
 -- some basic belt techs we know about
-local techs = {
-  "logistics",
+if util.me.remove_techs() then
+  local techs = {
+    "logistics",
 
-  "basic-logistics", -- AAI
+    "basic-logistics", -- AAI
 
-  "omt-logistics-4", -- one more tier
+    "omt-logistics-4", -- one more tier
 
-  "BetterBelts_ultra-class",
-  "uranium-transport-belts",
-}
--- "logistics-N" techs
-for i=0,10,1 do
-  table.insert(techs, "logistics-"..i)
-end
-for i, tech in pairs(techs) do
-  butil.techs[tech] = true
-end
--- in case any techs are named after belt entities
-for belt, t in pairs(butil.belt_entities) do
-  butil.techs[belt] = true
-end
--- in case any techs are named after belt items
-for belt in pairs(butil.belt_items) do
-  butil.techs[belt] = true
-end
--- in case any techs are named after belt recipes
-for belt in pairs(recipes) do
-  butil.techs[belt] = true
-end
-
--- Space Exploration requires this tech to be present
-butil.techs["se-deep-space-transport-belt"] = nil
-  
--- Make sure we don't remove techs if they still unlock things
-for tech in pairs(butil.techs) do
-  local technology = data.raw.technology[tech]
-  if not (technology and (technology.effects == nil or #technology.effects == 0)) then
-    butil.techs[tech] = nil
+    "BetterBelts_ultra-class",
+    "uranium-transport-belts",
+  }
+  -- "logistics-N" techs
+  for i=0,10,1 do
+    table.insert(techs, "logistics-"..i)
   end
-end
+  for i, tech in pairs(techs) do
+    butil.techs[tech] = true
+  end
+  -- in case any techs are named after belt entities
+  for belt, t in pairs(butil.belt_entities) do
+    butil.techs[belt] = true
+  end
+  -- in case any techs are named after belt items
+  for belt in pairs(butil.belt_items) do
+    butil.techs[belt] = true
+  end
+  -- in case any techs are named after belt recipes
+  for belt in pairs(recipes) do
+    butil.techs[belt] = true
+  end
 
--- Rework technology tree
-for i, tech in pairs(data.raw.technology) do
-  butil.remove_belt_prereqs(tech)
-end
+  -- Space Exploration requires this tech to be present
+  butil.techs["se-deep-space-transport-belt"] = nil
 
--- Finally, remove techs that are no longer needed
-for tech in pairs(butil.techs) do
-  local technology = data.raw.technology[tech]
-  -- repeat cheap check above just in case
-  if technology and (technology.effects == nil or #technology.effects == 0) then
-    util.remove_raw("technology", tech)
+  -- Make sure we don't remove techs if they still unlock things
+  for tech in pairs(butil.techs) do
+    local technology = data.raw.technology[tech]
+    if not (technology and (technology.effects == nil or #technology.effects == 0)) then
+      butil.techs[tech] = nil
+    end
+  end
+
+  -- Rework technology tree
+  for i, tech in pairs(data.raw.technology) do
+    butil.remove_belt_prereqs(tech)
+  end
+
+  -- Finally, remove techs that are no longer needed
+  for tech in pairs(butil.techs) do
+    local technology = data.raw.technology[tech]
+    -- repeat cheap check above just in case
+    if technology and (technology.effects == nil or #technology.effects == 0) then
+      util.remove_raw("technology", tech)
+    end
   end
 end
 
