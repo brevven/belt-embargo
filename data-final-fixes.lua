@@ -1,91 +1,38 @@
 local util = require("data-util");
 local butil = require("butil");
+local futil = require("util");
 
 
-local roots = {
-  "transport-belt", "underground-belt", "splitter",
-}
-local loader_roots = {
-    "loader",
-
-    -- miniloader
-    "miniloader", "filter-miniloader",
-
-    -- deadlock loaders
-    "transport-belt-loader",
-
-    -- modmash
-    "mini-loader",
-}
-
-if util.me.remove_loaders() then 
-  for i, loader in pairs(loader_roots) do
-    table.insert(roots, loader)
-  end
+-- determine which types of items to remove
+local types =  {"transport-belt", "underground-belt", "splitter"}
+if util.me.remove_loaders() then
+  table.insert(types, "loader")
+  table.insert(types, "loader-1x1")
 end
 
-local prefixes = {}
-for i, entity in pairs(data.raw["transport-belt"]) do
-  local name = entity.name
-  name = string.gsub(name, "transport%-belt.*", "")
-  log("Found transport belt prefix to remove: ".. name)
-  table.insert(prefixes, name)
-end
-
-local suffixes = {}
-suffixes["se-deep-space-"]={"", "-blue", "-cyan", "-green", "-magenta", "-red", "-yellow", "-white"}
-suffixes["BetterBelts_ultra-"]={"", "-v1", "-v2", "-v3"}
-suffixes["5d-"]={
-  "-04", "-05", "-06", "-07", "-08", "-09", "-10",
-  "-30-04", "-30-05", "-30-06", "-30-07", "-30-08", "-30-09", "-30-10",
-  "-50-04", "-50-05", "-50-06", "-50-07", "-50-08", "-50-09", "-50-10",
-}
-if mods.modmashsplinterlogistics then
-  suffixes["high-speed-"]={"", "-structure"}
-  suffixes["regenerative-"]={"", "-structure"}
-end
-
-
-local techs = {
-  "logistics", "logistics-2", "logistics-3",
-
-  -- bob's
-  "logistics-0", "logistics-1", "logistics-4", "logistics-5",
-
-  -- one more tier
-  "omt-logistics-4",
-
-  "BetterBelts_ultra-class",
-  "uranium-transport-belts",
-}
-
-if mods.miniloader and util.me.remove_loaders() then
-  for i, prefix in pairs(prefixes) do
-    table.insert(techs, prefix.."miniloader")
-  end
-end
-
-for i, tech in pairs(techs) do
-  butil.techs[tech] = true
-end
-
-
-
-for i, prefix in pairs(prefixes) do
-  local mysuffixes = suffixes[prefix] and suffixes[prefix] or {""}
-  for k, suffix in pairs(mysuffixes) do 
-    for j, root in pairs(roots) do
-      butil.belts[prefix..root..suffix] = true
+-- build up a list of items to remove
+for i, t in pairs(types) do
+  if data.raw[t] then
+    for j, entity in pairs(data.raw[t]) do
+      butil.remove(entity.name, t)
     end
   end
 end
-butil.belts["chute-miniloader"] = true
-butil.belts["space-miniloader"] = true
-butil.belts["space-filter-miniloader"] = true
-butil.belts["deep-space-miniloader"] = true
-butil.belts["deep-space-filter-miniloader"] = true
-butil.belts["kr-se-loader"] = true
-butil.belts["kr-se-deep-space-loader-black"] = true
+
+-- handle miniloaders
+if util.me.remove_loaders() and mods.miniloader then
+  local miniloaders = {}
+  for belt, t in pairs(butil.belts) do
+    if belt:find("miniloader") then
+      table.insert(miniloaders, belt)
+    end
+  end
+  for i, belt in pairs(miniloaders) do
+    belt = belt:gsub("%-loader", "")
+    butil.remove(belt.."-inserter", "inserter")
+    butil.remove(belt, "loader")
+  end
+end
 
 -- remove KR void crushing recipes first
 if mods.Krastorio2 then
@@ -94,7 +41,7 @@ if mods.Krastorio2 then
   end
 end
 
--- replace belt ingredients
+-- replace belt ingredients, recursively
 for i, recipe in pairs(data.raw.recipe) do
   if recipe then
     -- skip over belt recipes as we're not going to use them anyways
@@ -109,25 +56,30 @@ for i, recipe in pairs(data.raw.recipe) do
       then
       goto continue
     end
-    log("---------------------------")
-    log(recipe.name)
     if recipe.ingredients then
+      -- log("-----------------------")
+      -- log("BZZZZ .." ..recipe.name)
       butil.replace_belts(recipe.ingredients)
       for i, ingredient in pairs(recipe.ingredients) do
         if ingredient.type == "fluid" and (recipe.category == "crafting" or recipe.category == nil) then
           recipe.category = "crafting-with-fluid"
         end
       end
+      -- log("DONE ".. serpent.dump(recipe))
     elseif recipe.normal and recipe.normal.ingredients then
+      -- log("-----------------------")
+      -- log("BZZZZ ..".. recipe.name)
       butil.replace_belts(recipe.normal.ingredients)
+      if recipe.expensive and recipe.expensive.ingredients then
+        butil.replace_belts(recipe.expensive.ingredients)
+      end
       for i, ingredient in pairs(recipe.normal.ingredients) do
         if ingredient.type == "fluid" and (recipe.category == "crafting" or recipe.category == nil) then
           recipe.category = "crafting-with-fluid"
         end
       end
+      -- log("DONE ".. serpent.dump(recipe))
     end
-    log(recipe.name.." DONE, recipe: ")
-    log(serpent.dump(recipe))
   end
   ::continue::
 end
@@ -136,6 +88,7 @@ end
 -- TODO in future update -- will crash with multi-product recipes for now
 
 -- remove belt recipes
+local recipes =  {}
 for i, recipe in pairs(data.raw.recipe) do
   if ((recipe.result and butil.belts[recipe.result]) or
      (recipe.results and #recipe.results == 1 and 
@@ -146,47 +99,48 @@ for i, recipe in pairs(data.raw.recipe) do
         (butil.belts[recipe.normal.results[1][1]] or
         butil.belts[recipe.normal.results[1].name])))
     then
-    util.remove_raw("recipe", recipe.name)
+      log("Removing recipe "..recipe.name)
+      recipes[recipe.name] = true
+      util.remove_raw("recipe", recipe.name)
   end
 end
 
--- -- remove belt items
--- for belt in pairs(butil.belts) do
---   util.remove_raw("item", belt)
--- end
-if mods.miniloader then
-  for i, prefix in pairs({"space-", "deep-space-", table.unpack(prefixes)}) do
-    for j, root in pairs({"miniloader-inserter", "filter-miniloader-inserter"}) do
-      util.remove_raw("item", prefix..root)
+-- remove belt items
+for belt in pairs(butil.belts) do
+  log("Removing item "..belt)
+  util.remove_raw("item", belt)
+end
+
+-- make dummy entities due to factorio base requirements
+for i, t in pairs(types) do 
+  for belt, ty in pairs(butil.belts) do
+    if t == ty then
+      log("Making dummy of "..t.." - "..belt) 
+      entity = futil.table.deepcopy(data.raw[t][belt])
+      entity.minable = nil
+      entity.placeable_by = nil
+      entity.name = "dummy-"..t
+      entity.next_upgrade = nil
+      entity.related_underground_belt = nil
+      data:extend({entity})
+      break
     end
   end
 end
 
 -- remove belt entities
-for belt in pairs(butil.belts) do
-  util.remove_raw("entity", belt)
-end
-if mods.miniloader then
-  for i, prefix in pairs({"space-", "deep-space-", table.unpack(prefixes)}) do
-    for j, root in pairs({"miniloader-inserter", "filter-miniloader-inserter"}) do
-      util.remove_raw("transport-belt", prefix..root)
-      util.remove_raw("underground-belt", prefix..root)
-      util.remove_raw("splitter", prefix..root)
-      util.remove_raw("loader", prefix..root)
-      if mods.miniloader then
-        util.remove_raw("loader", prefix..root.."-inserter")
-        util.remove_raw("inserter", prefix..root.."-inserter")
-      end
-    end
-  end
+for belt, t in pairs(butil.belts) do
+  log("Removing "..t.." "..belt)
+  util.remove_raw(t, belt)
 end
 
 -- remove belt unlocks
 for i, tech in pairs(data.raw.technology) do
-  butil.remove_belt_unlocks(tech)
+  butil.remove_belt_unlocks(tech, recipes)
 end
 
 
+-- remove tips-and-tricks that use belts
 util.remove_raw("tips-and-tricks-item", "transport-belts")
 util.remove_raw("tips-and-tricks-item", "belt-lanes")
 util.remove_raw("tips-and-tricks-item", "underground-belts")
@@ -199,13 +153,54 @@ util.remove_raw("tips-and-tricks-item", "fast-replace-direction")
 util.remove_raw("tips-and-tricks-item", "z-dropping")
 util.remove_raw("tips-and-tricks-item", "drag-building-underground-belts")
 util.remove_raw("tips-and-tricks-item", "fast-belt-bending")
+util.remove_raw("tips-and-tricks-item", "fast-obstacle-traversing")
 
-if util.me.remove_loaders() then
-  for i, tech in pairs(data.raw.technology) do
-    butil.remove_belt_prereqs(tech)
+
+-- set up technologies to remove
+-- some basic belt techs we know about
+local techs = {
+  "logistics",
+
+  "basic-logistics", -- AAI
+
+  "omt-logistics-4", -- one more tier
+
+  "BetterBelts_ultra-class",
+  "uranium-transport-belts",
+}
+-- "logistics-N" techs
+for i=0,10,1 do
+  table.insert(techs, "logistics-"..i)
+end
+for i, tech in pairs(techs) do
+  butil.techs[tech] = true
+end
+-- in case any techs are named after belt entities
+for belt, t in pairs(butil.belts) do
+  butil.techs[belt] = true
+end
+
+--if util.me.remove_loaders() then
+--
+  
+-- Make sure we don't remove techs if they still unlock things
+for tech in pairs(butil.techs) do
+  local technology = data.raw.technology[tech]
+  if not (technology and (technology.effects == nil or #technology.effects == 0)) then
+    butil.techs[tech] = nil
   end
+end
 
-  for tech in pairs(butil.techs) do
+-- Rework technology tree
+for i, tech in pairs(data.raw.technology) do
+  butil.remove_belt_prereqs(tech)
+end
+
+-- Finally, remove techs that are no longer needed
+for tech in pairs(butil.techs) do
+  local technology = data.raw.technology[tech]
+  -- repeat cheap check above just in case
+  if technology and (technology.effects == nil or #technology.effects == 0) then
     util.remove_raw("technology", tech)
   end
 end

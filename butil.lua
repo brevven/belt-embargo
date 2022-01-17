@@ -2,8 +2,15 @@ local util = require("data-util");
 local futil = require("util")
 
 butil = {}
-butil.belts = {}
 butil.techs = {}
+butil.belts = {}
+
+function butil.remove(name, t) 
+  local name = name
+  log("Found belt entity to remove: ".. name)
+  butil.belts[name] = t
+end
+
 
 
 function butil.remove_belt_prereqs(tech)
@@ -67,51 +74,45 @@ function butil.replace_belts(ingredients)
     end
   end
   for j, foundi in pairs(found) do
-    log("BZZZ 1")
-    log("found belt "..foundi[1])
+    -- log("found belt "..foundi[1])
     for i, ingredient in pairs(ingredients) do
-      log(serpent.dump(ingredient))
+      -- log(serpent.dump(ingredient))
       if ingredient and (ingredient[1] == foundi[1] or ingredient.name == foundi[1]) then
-        log("RM ^")
+        -- log("RM ^")
         table.remove(ingredients, i)
       end
     end
   end
   for i, foundi in pairs(found) do
-    log("BZZZ 1.5")
-    log("doing found belt ".. serpent.dump(foundi))
+    -- log("doing found belt ".. serpent.dump(foundi))
     local replacements = get_replacement_ingredients(foundi[1])
     local quantity = foundi[2]
-    log(quantity)
-    log("BZZZ 1.55")
-    log("replacements "..serpent.dump(replacements))
+    -- log(quantity)
+    -- log("replacements "..serpent.dump(replacements))
     for j, new_ingredient in pairs(replacements) do
       doit = true
       for k, existing in pairs(ingredients) do
-        log("new_ingredient "..serpent.dump(new_ingredient))
-        log("existing "..serpent.dump(existing))
+        -- log("new_ingredient "..serpent.dump(new_ingredient))
+        -- log("existing "..serpent.dump(existing))
         if existing[1] and (existing[1] == new_ingredient[1] or existing[1] == new_ingredient.name) then
-          log("BZZZZZ 1.6.A")
-          log("existing "..serpent.dump(existing))
-          log("new "..serpent.dump(new_ingredient))
+          -- log("existing "..serpent.dump(existing))
+          -- log("new "..serpent.dump(new_ingredient))
           existing[2] = existing[2] + quantity * (new_ingredient[2] and new_ingredient[2] or new_ingredient.amount)
           doit = false
         elseif existing.name and (existing.name == new_ingredient[1] or existing.name == new_ingredient.name) then
-          log("BZZZZZ 1.6.B")
-          log("existing "..serpent.dump(existing))
-          log("new "..serpent.dump(new_ingredient))
+          -- log("existing "..serpent.dump(existing))
+          -- log("new "..serpent.dump(new_ingredient))
           existing.amount = existing.amount + quantity * (new_ingredient[2] and new_ingredient[2] or new_ingredient.amount)
           doit = false
         end
       end
       if doit then
         if new_ingredient.name then
-          log("BZZZ 1.7")
-          log(serpent.dump(new_ingredient))
+          -- log(serpent.dump(new_ingredient))
           new_new_ingredient = futil.table.deepcopy(new_ingredient)
-          log(serpent.dump(new_new_ingredient))
+          -- log(serpent.dump(new_new_ingredient))
           new_new_ingredient.amount = new_ingredient.amount * quantity
-          log(serpent.dump(new_new_ingredient))
+          -- log(serpent.dump(new_new_ingredient))
           table.insert(ingredients, new_new_ingredient)
         elseif new_ingredient[1] then
           table.insert(ingredients, {new_ingredient[1], new_ingredient[2] * quantity})
@@ -131,26 +132,22 @@ function get_replacement_ingredients(ingredient_name)
     elseif recipe.normal and recipe.normal.ingredients then
       ingredients = recipe.normal.ingredients
     end
-    log("BZZZ 2")
-    log(serpent.dump(ingredients))
+    -- log(serpent.dump(ingredients))
     for i, ingredient in pairs(ingredients) do
       if butil.belts[ingredient[1]] then
-        log("BZZZ i")
-        log(ingredient[1])
+        -- log(ingredient[1])
         local more = get_replacement_ingredients(ingredient[1])
         for j, new_ingredient in pairs(more) do
           table.insert(replacements, new_ingredient)
         end
       elseif butil.belts[ingredient.name] then
-        log("BZZZ name")
-        log(ingredient.name)
+        -- log(ingredient.name)
         local more = get_replacement_ingredients(ingredient.name)
         for j, new_ingredient in pairs(more) do
           table.insert(replacements, new_ingredient)
         end
       else
-        log("BZZZ ok")
-        log(ingredient.name)
+        -- log(ingredient.name)
         table.insert(replacements, ingredient)
       end
     end
@@ -158,10 +155,10 @@ function get_replacement_ingredients(ingredient_name)
   return replacements
 end
 
-function butil.remove_belt_unlocks(tech) 
+function butil.remove_belt_unlocks(tech, recipes) 
   if tech and tech.effects then
     for i, effect in pairs(tech.effects) do
-      if effect and effect.type == "unlock-recipe" and butil.belts[effect.recipe] then
+      if effect and effect.type == "unlock-recipe" and recipes[effect.recipe] then
         tech.effects[i] = nil
       end
     end

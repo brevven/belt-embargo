@@ -10,6 +10,7 @@
       "base >= 1.1.0",
       "(?) space-exploration",
       "(?) Krastorio2",
+      "(?) modmashsplinterlogistics",
       "(?) bz-dsr-bridge"
     ],
     "description": "Removes belts from the game. Adjusts recipes to compensate.\n\nSupports vanilla and modded belts."
